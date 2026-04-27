@@ -139,7 +139,7 @@ else:
                     st.balloons()
     with tab_history:
         st.subheader("Lịch sử biến động số dư")
-        raw_history = bank.get_history(my_id)
+        raw_history = bank.get_history(int(my_id))
         
         if not raw_history:
             st.info("Bạn chưa thực hiện giao dịch nào.")
