@@ -138,18 +138,18 @@ else:
                     st.success(f"🎉 Hệ thống tự động duyệt! Đã cộng ${loan_amount:,.2f} vào tài khoản.")
                     st.balloons()
     with tab_history:
-    st.subheader("Lịch sử biến động số dư")
-    raw_history = bank.get_history(my_id)
-    
-    if not raw_history:
-        st.info("Bạn chưa thực hiện giao dịch nào.")
-    else:
-        df_history = pd.DataFrame(raw_history, columns=["Loại", "Từ ID", "Đến ID", "Số tiền ($)", "Thời gian"])
-        df_history["Số tiền ($)"] = df_history["Số tiền ($)"].apply(lambda x: f"{float(x):,.2f}")
+        st.subheader("Lịch sử biến động số dư")
+        raw_history = bank.get_history(my_id)
         
-        st.dataframe(df_history, use_container_width=True, hide_index=True)
-        csv = df_history.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Tải sao kê (.csv)", data=csv, file_name=f"saoke_{my_id}.csv", mime="text/csv")
+        if not raw_history:
+            st.info("Bạn chưa thực hiện giao dịch nào.")
+        else:
+            df_history = pd.DataFrame(raw_history, columns=["Loại", "Từ ID", "Đến ID", "Số tiền ($)", "Thời gian"])
+            df_history["Số tiền ($)"] = df_history["Số tiền ($)"].apply(lambda x: f"{float(x):,.2f}")
+            
+            st.dataframe(df_history, use_container_width=True, hide_index=True)
+            csv = df_history.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Tải sao kê (.csv)", data=csv, file_name=f"saoke_{my_id}.csv", mime="text/csv")
     if my_id == 6:
         with tab_admin:
             st.subheader("Bảng điều khiển Server Database")
