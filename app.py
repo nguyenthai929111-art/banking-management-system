@@ -48,9 +48,14 @@ if st.session_state.logged_in_id is None:
 
 else:
     my_id = st.session_state.logged_in_id
-    tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_admin = st.tabs([
-        "📊 Thông tin", "💳 Nạp / Rút", "🔄 Chuyển khoản", "🏦 Vay VIP", "🛠️ Admin DB"
-    ])
+    if my_id == 6:
+        tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_admin = st.tabs([
+            "📊 Thông tin", "💳 Nạp / Rút", "🔄 Chuyển khoản", "🏦 Vay VIP", "🛠️ Admin DB"
+        ])
+    else:
+        tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay = st.tabs([
+            "📊 Thông tin", "💳 Nạp / Rút", "🔄 Chuyển khoản", "🏦 Vay VIP"
+        ])
     
     with tab_info:
         st.subheader("Tài khoản của bạn")
@@ -97,25 +102,28 @@ else:
                 st.balloons()
             else:
                 st.error("❌ Từ chối hồ sơ: Bạn chưa đạt mức VIP.")
-    with tab_admin:
-        st.subheader("Bảng điều khiển Server Database")
-        st.warning("Khu vực này hiển thị dữ liệu thực tế đang chạy trên Server.")
-        try:
-            conn = sqlite3.connect('bank_data.db')
-            df = pd.read_sql_query("SELECT id, name, balance, password FROM Accounts", conn)
-            st.markdown("**1. Dữ liệu Bảng 'Accounts'**")
-            st.dataframe(df, use_container_width=True, hide_index=True)
-            total_assets = df['balance'].sum()
-            st.metric("Tổng tài sản đang quản lý", f"${total_assets:,.2f}")
-            conn.close()
-            st.markdown("**2. Trích xuất Database**")
-            with open("bank_data.db", "rb") as file:
-                st.download_button(
-                    label="📥 Tải file bank_data.db của Server về máy",
-                    data=file,
-                    file_name="Cloud_bank_data.db",
-                    mime="application/octet-stream",
-                    type="primary"
-                )
-        except Exception as e:
-            st.error(f"Chưa có dữ liệu hoặc Lỗi kết nối: {e}")
+    if my_id == 6:
+        with tab_admin:
+            st.subheader("Bảng điều khiển Server Database")
+            st.warning("Khu vực này hiển thị dữ liệu thực tế đang chạy trên Server.")
+            try:
+                conn = sqlite3.connect('bank_data.db')
+                df = pd.read_sql_query("SELECT id, name, balance, password FROM Accounts", conn)
+                st.markdown("**1. Dữ liệu Bảng 'Accounts'**")
+                st.dataframe(df, use_container_width=True, hide_index=True)
+                total_assets = df['balance'].sum()
+                st.metric("Tổng tài sản đang quản lý", f"${total_assets:,.2f}")
+                
+                conn.close()
+                st.markdown("**2. Trích xuất Database**")
+                with open("bank_data.db", "rb") as file:
+                    st.download_button(
+                        label="📥 Tải file bank_data.db của Server về máy",
+                        data=file,
+                        file_name="Cloud_bank_data.db",
+                        mime="application/octet-stream",
+                        type="primary"
+                    )
+                    
+            except Exception as e:
+                st.error(f"Chưa có dữ liệu hoặc Lỗi kết nối: {e}")
