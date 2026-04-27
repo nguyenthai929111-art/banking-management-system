@@ -64,7 +64,7 @@ if st.session_state.logged_in_id is None:
 
 else:
     my_id = st.session_state.logged_in_id
-    if my_id == 6:
+    if my_id == 1:
         tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_history, tab_admin = st.tabs([
             "📊 Thông tin", "💸 Giao dịch", "🔄 Chuyển khoản", "🏦 Vay VIP", "🧾 Sao kê", "🛠️ Admin DB"
         ])
@@ -150,7 +150,7 @@ else:
             st.dataframe(df_history, use_container_width=True, hide_index=True)
             csv = df_history.to_csv(index=False).encode('utf-8')
             st.download_button("📥 Tải sao kê (.csv)", data=csv, file_name=f"saoke_{my_id}.csv", mime="text/csv")
-    if my_id == 6:
+    if my_id == 1:
         with tab_admin:
             st.subheader("Bảng điều khiển Server Database")
             st.warning("Khu vực này hiển thị dữ liệu thực tế đang chạy trên Server.")
