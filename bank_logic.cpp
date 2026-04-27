@@ -17,14 +17,20 @@ BankManager::BankManager() {
     std::string create_table_sql = 
         "CREATE TABLE IF NOT EXISTS Accounts ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "name TEXT NOT NULL, "
+        "balance REAL NOT NULL, "
+        "password TEXT NOT NULL);"; 
+    execute_query(create_table_sql);
+    std::string create_trans_sql = 
+        "CREATE TABLE IF NOT EXISTS Transactions ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "from_id INTEGER, "
         "to_id INTEGER, "
         "type TEXT, "
         "amount REAL, "
         "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP);";
-    execute_query(create_table_sql);
+    execute_query(create_trans_sql);
 }
-
 BankManager::~BankManager() {
     sqlite3_close(db);
 }
