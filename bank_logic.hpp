@@ -2,7 +2,7 @@
 #define BANK_LOGIC_HPP
 
 #include <string>
-#include "sqlite3.h" // Dùng ngoặc kép để đọc file sqlite3.h cùng thư mục
+#include "sqlite3.h"
 
 class BankManager {
 private:
