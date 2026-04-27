@@ -86,17 +86,14 @@ bool BankManager::withdraw(int account_id, double amount) {
         return true;
     } catch (...) { return false; }
 }
-// 5. Chuyển khoản (Đảm bảo logic trừ tiền người gửi và cộng tiền người nhận)
 bool BankManager::transfer(int from_id, int to_id, double amount) {
     if (amount <= 0 || from_id == to_id) return false;
     
     try {
         double from_balance = get_balance(from_id);
-        get_balance(to_id); // Gọi hàm này chỉ để kiểm tra người nhận có tồn tại không
+        get_balance(to_id);
         
-        if (from_balance < amount) return false; // Không đủ tiền chuyển
-
-        // Thực hiện 2 câu lệnh SQL liên tiếp để cập nhật số dư
+        if (from_balance < amount) return false;
         std::string sql_tru = "UPDATE Accounts SET balance = balance - " + std::to_string(amount) + " WHERE id = " + std::to_string(from_id) + ";";
         std::string sql_cong = "UPDATE Accounts SET balance = balance + " + std::to_string(amount) + " WHERE id = " + std::to_string(to_id) + ";";
         
@@ -104,24 +101,20 @@ bool BankManager::transfer(int from_id, int to_id, double amount) {
         execute_query(sql_cong);
         return true;
     } catch (...) {
-        return false; // Lỗi nếu sai ID
+        return false;
     }
 }
-
-// 6. Vay vốn (Yêu cầu khắt khe: Số dư hiện tại phải lớn hơn 5,000,000)
 bool BankManager::request_loan(int account_id, double amount) {
     if (amount <= 0) return false;
     
     try {
         double current_balance = get_balance(account_id);
-        
-        // Cổng kiểm duyệt điều kiện VIP
         if (current_balance > 5000000.0) {
             std::string sql = "UPDATE Accounts SET balance = balance + " + std::to_string(amount) + " WHERE id = " + std::to_string(account_id) + ";";
             execute_query(sql);
             return true;
         }
-        return false; // Bị từ chối vì không đủ chuẩn VIP
+        return false;
     } catch (...) {
         return false;
     }
