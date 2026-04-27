@@ -17,9 +17,6 @@ BankManager::BankManager() {
     std::string create_table_sql = 
         "CREATE TABLE IF NOT EXISTS Accounts ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-        "name TEXT NOT NULL, "
-        "balance REAL NOT NULL,"
-        "password TEXT NOT NULL),"
         "from_id INTEGER, "
         "to_id INTEGER, "
         "type TEXT, "
