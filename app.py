@@ -70,7 +70,7 @@ else:
         ])
     else:
         tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay = st.tabs([
-            "📊 Thông tin", "💳 Nạp / Rút", "🔄 Chuyển khoản", "🏦 Vay VIP"
+            "📊 Thông tin", "💸 Giao dịch", "🔄 Chuyển khoản", "🏦 Vay VIP", "🧾 Sao kê"
         ])
     
     with tab_info:
