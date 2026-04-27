@@ -1,5 +1,9 @@
 from setuptools import setup, Extension
-import pybind11
+
+class get_pybind_include(object):
+    def __str__(self):
+        import pybind11
+        return pybind11.get_include()
 
 functions_module = Extension(
     'bank_core', 
@@ -7,7 +11,6 @@ functions_module = Extension(
     include_dirs=[pybind11.get_include(), '.'],
     language='c++',
     extra_compile_args=['-std=c++11'],
-    extra_link_args=['-static', '-static-libgcc', '-static-libstdc++'] 
 )
 
 setup(
