@@ -19,7 +19,12 @@ BankManager::BankManager() {
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "name TEXT NOT NULL, "
         "balance REAL NOT NULL,"
-        "password TEXT NOT NULL);";
+        "password TEXT NOT NULL),"
+        "from_id INTEGER, "
+        "to_id INTEGER, "
+        "type TEXT, "
+        "amount REAL, "
+        "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP);";
     execute_query(create_table_sql);
 }
 
@@ -118,4 +123,32 @@ bool BankManager::request_loan(int account_id, double amount) {
     } catch (...) {
         return false;
     }
+}
+void BankManager::log_transaction(int from_id, int to_id, const std::string& type, double amount) {
+    std::string sql = "INSERT INTO Transactions (from_id, to_id, type, amount) VALUES (" +
+                      std::to_string(from_id) + ", " + std::to_string(to_id) + ", '" + 
+                      type + "', " + std::to_string(amount) + ");";
+    execute_query(sql);
+}
+
+std::vector<std::vector<std::string>> BankManager::get_history(int account_id) {
+    std::vector<std::vector<std::string>> history;
+    std::string sql = "SELECT type, from_id, to_id, amount, timestamp FROM Transactions "
+                      "WHERE from_id = " + std::to_string(account_id) + 
+                      " OR to_id = " + std::to_string(account_id) + " ORDER BY timestamp DESC;";
+    
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::vector<std::string> row;
+            row.push_back(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
+            row.push_back(std::to_string(sqlite3_column_int(stmt, 1)));                
+            row.push_back(std::to_string(sqlite3_column_int(stmt, 2)));                
+            row.push_back(std::to_string(sqlite3_column_double(stmt, 3)));
+            row.push_back(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 4)));
+            history.push_back(row);
+        }
+    }
+    sqlite3_finalize(stmt);
+    return history;
 }
