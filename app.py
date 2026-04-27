@@ -2,10 +2,33 @@ import streamlit as st
 import bank_core
 import sqlite3
 import pandas as pd
+import math
+
 st.set_page_config(page_title="VNU Secure Banking", page_icon="🏦", layout="wide")
 if 'logged_in_id' not in st.session_state:
     st.session_state.logged_in_id = None
+def calculate_credit_score(balance):
+    """Sử dụng hàm Sigmoid để ánh xạ số dư thành điểm tín dụng FICO (300-850)"""
+    if balance <= 0: return 300
+    
+    k = 0.000002     # Hệ số dốc (Tùy chỉnh theo đơn vị tiền tệ)
+    mu = 2000000     # Mốc số dư tiêu chuẩn (Điểm rẽ nhánh của Sigmoid)
+    
+    # Tính xác suất qua hàm Sigmoid
+    sigmoid_prob = 1 / (1 + math.exp(-k * (balance - mu)))
+    
+    # Quy đổi ra điểm tín dụng
+    score = 300 + int(550 * sigmoid_prob)
+    return score
 
+def evaluate_fraud_risk(amount, current_balance):
+    """Đánh giá rủi ro giao dịch bất thường"""
+    if amount >= 10000000 or (current_balance > 0 and (amount / current_balance) > 0.8):
+        return "HIGH_RISK"
+    elif amount >= 5000000 or (current_balance > 0 and (amount / current_balance) > 0.5):
+        return "MEDIUM_RISK"
+    return "SAFE"
+    
 @st.cache_resource
 def get_bank_engine():
     return bank_core.BankManager()
@@ -79,29 +102,58 @@ else:
                 else:
                     st.error("Thất bại! Không đủ số dư.")
     with tab_chuyen_khoan:
-        st.subheader("Chuyển tiền nội bộ")
+        st.subheader("Chuyển tiền & Quét rủi ro")
         target_id = st.number_input("ID Người nhận", min_value=1, step=1, key="target_id")
         amount_ck = st.number_input("Số tiền chuyển ($)", min_value=1.0, step=50.0, key="ck_amount")
         
         if st.button("Xác nhận chuyển", type="primary"):
             if target_id == my_id:
                 st.warning("Không thể tự chuyển tiền cho chính mình.")
-            elif bank.transfer(my_id, target_id, amount_ck):
-                st.success(f"Đã chuyển ${amount_ck:,.2f} đến ID {target_id}!")
-                st.balloons()
             else:
-                st.error("Thất bại! Sai ID người nhận hoặc không đủ số dư.")
+                current_bal = bank.get_balance(my_id)
+                risk_level = evaluate_fraud_risk(amount_ck, current_bal)
+                
+                # Xử lý theo mức độ rủi ro
+                if risk_level == "HIGH_RISK":
+                    st.error("🚨 CẢNH BÁO BẢO MẬT: Giao dịch có dấu hiệu bất thường (Số tiền quá lớn hoặc chiếm >80% tài sản). Hệ thống tạm khóa giao dịch này để bảo vệ tài sản của bạn!")
+                elif risk_level == "MEDIUM_RISK":
+                    st.warning("⚠️ Cảnh báo: Bạn đang chuyển đi một lượng tài sản lớn. Vui lòng kiểm tra kỹ ID người nhận.")
+                    # Vẫn cho phép chuyển
+                    if bank.transfer(my_id, target_id, amount_ck):
+                        st.success(f"Đã chuyển ${amount_ck:,.2f} đến ID {target_id} thành công.")
+                else:
+                    # Giao dịch an toàn bình thường
+                    if bank.transfer(my_id, target_id, amount_ck):
+                        st.success(f"Đã chuyển ${amount_ck:,.2f} đến ID {target_id} an toàn!")
+                    else:
+                        st.error("Thất bại! Sai ID hoặc không đủ số dư.")
     with tab_vay:
-        st.subheader("Hệ thống Giải ngân Tự động")
-        st.warning("⚠️ **Điều kiện:** Số dư tài khoản phải trên **$5,000,000**.")
-        loan_amount = st.number_input("Khoản tiền muốn vay ($)", min_value=1000.0, step=1000.0, key="loan_amount")
+        st.subheader("Hệ thống Giải ngân Tự động (AI Scoring)")
         
-        if st.button("Gửi yêu cầu", type="primary"):
-            if bank.request_loan(my_id, loan_amount):
-                st.success(f"🎉 Duyệt thành công! Đã cộng ${loan_amount:,.2f} vào tài khoản.")
-                st.balloons()
-            else:
-                st.error("❌ Từ chối hồ sơ: Bạn chưa đạt mức VIP.")
+        # 1. Tính toán điểm tín dụng tự động
+        current_bal = bank.get_balance(my_id)
+        credit_score = calculate_credit_score(current_bal)
+        
+        # Hiển thị biểu đồ điểm
+        st.metric("Điểm tín dụng (FICO Score)", f"{credit_score} / 850")
+        
+        # 2. Quyết định hạn mức vay dựa trên điểm tín dụng
+        max_loan = 0
+        if credit_score < 500:
+            st.error("Hồ sơ tín dụng Rủi ro cao. Bạn không đủ điều kiện vay vốn.")
+        elif credit_score < 700:
+            max_loan = current_bal * 0.5 # Cho vay tối đa 50% tài sản đang có
+            st.warning(f"Hồ sơ Trung bình. Hạn mức vay tối đa của bạn là: **${max_loan:,.2f}**")
+        else:
+            max_loan = current_bal * 2.0 # VIP: Cho vay gấp đôi tài sản
+            st.success(f"Hồ sơ Xuất sắc! Hạn mức vay tín chấp của bạn lên tới: **${max_loan:,.2f}**")
+            
+        if max_loan > 0:
+            loan_amount = st.number_input("Khoản tiền muốn vay ($)", min_value=1.0, max_value=float(max_loan), step=1000.0, key="loan_amount")
+            if st.button("Gửi yêu cầu giải ngân", type="primary"):
+                if bank.request_loan(my_id, loan_amount): # Có thể cần bỏ điều kiện >5tr trong C++ đi nhé
+                    st.success(f"🎉 Hệ thống tự động duyệt! Đã cộng ${loan_amount:,.2f} vào tài khoản.")
+                    st.balloons()
     if my_id == 6:
         with tab_admin:
             st.subheader("Bảng điều khiển Server Database")
