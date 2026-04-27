@@ -1,10 +1,8 @@
 import streamlit as st
 import bank_core
-
-# Cấu hình trang
+import sqlite3
+import pandas as pd
 st.set_page_config(page_title="VNU Secure Banking", page_icon="🏦", layout="wide")
-
-# Khởi tạo trạng thái đăng nhập
 if 'logged_in_id' not in st.session_state:
     st.session_state.logged_in_id = None
 
@@ -13,8 +11,6 @@ def get_bank_engine():
     return bank_core.BankManager()
 
 bank = get_bank_engine()
-
-# ================= SIDEBAR ĐĂNG NHẬP =================
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/2830/2830284.png", width=100)
     if st.session_state.logged_in_id is None:
@@ -24,7 +20,7 @@ with st.sidebar:
         if st.button("Đăng nhập", type="primary"):
             if bank.authenticate(login_id, login_pwd):
                 st.session_state.logged_in_id = login_id
-                st.rerun() # Tải lại trang sau khi đăng nhập thành công
+                st.rerun()
             else:
                 st.error("Sai ID hoặc mật khẩu!")
     else:
@@ -32,8 +28,6 @@ with st.sidebar:
         if st.button("Đăng xuất"):
             st.session_state.logged_in_id = None
             st.rerun()
-
-# ================= GIAO DIỆN CHÍNH =================
 st.title("🏦 Hệ Thống Ngân Hàng VNU")
 
 if st.session_state.logged_in_id is None:
@@ -53,21 +47,15 @@ if st.session_state.logged_in_id is None:
                 st.warning("Vui lòng điền đầy đủ Tên và Mật khẩu!")
 
 else:
-    # HIỂN THỊ CÁC CHỨC NĂNG KHI ĐÃ ĐĂNG NHẬP
     my_id = st.session_state.logged_in_id
-    
-    # Chia thành 4 tab rõ ràng
-    tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay = st.tabs([
-        "📊 Thông tin", "💳 Nạp / Rút", "🔄 Chuyển khoản", "🏦 Vay VIP"
+    tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_admin = st.tabs([
+        "📊 Thông tin", "💳 Nạp / Rút", "🔄 Chuyển khoản", "🏦 Vay VIP", "🛠️ Admin DB"
     ])
     
-    # --- Tab 1: Tra cứu Số dư ---
     with tab_info:
         st.subheader("Tài khoản của bạn")
         bal = bank.get_balance(my_id)
         st.metric("Số dư khả dụng", f"${bal:,.2f}")
-        
-    # --- Tab 2: Nạp / Rút tiền ---
     with tab_giao_dich:
         st.subheader("Giao dịch Nạp / Rút")
         amount_gd = st.number_input("Nhập số tiền ($)", min_value=1.0, step=50.0, key="gd_amount")
@@ -85,8 +73,6 @@ else:
                     st.success(f"Rút thành công ${amount_gd:,.2f}!")
                 else:
                     st.error("Thất bại! Không đủ số dư.")
-
-    # --- Tab 3: Chuyển khoản ---
     with tab_chuyen_khoan:
         st.subheader("Chuyển tiền nội bộ")
         target_id = st.number_input("ID Người nhận", min_value=1, step=1, key="target_id")
@@ -100,8 +86,6 @@ else:
                 st.balloons()
             else:
                 st.error("Thất bại! Sai ID người nhận hoặc không đủ số dư.")
-
-    # --- Tab 4: Vay Vốn VIP ---
     with tab_vay:
         st.subheader("Hệ thống Giải ngân Tự động")
         st.warning("⚠️ **Điều kiện:** Số dư tài khoản phải trên **$5,000,000**.")
@@ -113,3 +97,25 @@ else:
                 st.balloons()
             else:
                 st.error("❌ Từ chối hồ sơ: Bạn chưa đạt mức VIP.")
+    with tab_admin:
+        st.subheader("Bảng điều khiển Server Database")
+        st.warning("Khu vực này hiển thị dữ liệu thực tế đang chạy trên Server.")
+        try:
+            conn = sqlite3.connect('bank_data.db')
+            df = pd.read_sql_query("SELECT id, name, balance, password FROM Accounts", conn)
+            st.markdown("**1. Dữ liệu Bảng 'Accounts'**")
+            st.dataframe(df, use_container_width=True, hide_index=True)
+            total_assets = df['balance'].sum()
+            st.metric("Tổng tài sản đang quản lý", f"${total_assets:,.2f}")
+            conn.close()
+            st.markdown("**2. Trích xuất Database**")
+            with open("bank_data.db", "rb") as file:
+                st.download_button(
+                    label="📥 Tải file bank_data.db của Server về máy",
+                    data=file,
+                    file_name="Cloud_bank_data.db",
+                    mime="application/octet-stream",
+                    type="primary"
+                )
+        except Exception as e:
+            st.error(f"Chưa có dữ liệu hoặc Lỗi kết nối: {e}")
