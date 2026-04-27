@@ -6,6 +6,7 @@ namespace py = pybind11;
 PYBIND11_MODULE(bank_core, m) {
     py::class_<BankManager>(m, "BankManager")
         .def(py::init<>())
+        .def("get_history", &BankManager::get_history)
         .def("create_account", &BankManager::create_account)
         .def("authenticate", &BankManager::authenticate)
         .def("get_balance", &BankManager::get_balance)
