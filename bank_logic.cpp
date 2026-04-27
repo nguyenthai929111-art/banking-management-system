@@ -77,6 +77,7 @@ bool BankManager::deposit(int account_id, double amount) {
         get_balance(account_id); 
         std::string sql = "UPDATE Accounts SET balance = balance + " + std::to_string(amount) + " WHERE id = " + std::to_string(account_id) + ";";
         execute_query(sql);
+        log_transaction(0, account_id, "DEPOSIT", amount);
         return true;
     } catch (...) { return false; }
 }
@@ -88,6 +89,7 @@ bool BankManager::withdraw(int account_id, double amount) {
         if (current_balance < amount) return false; 
         std::string sql = "UPDATE Accounts SET balance = balance - " + std::to_string(amount) + " WHERE id = " + std::to_string(account_id) + ";";
         execute_query(sql);
+        log_transaction(account_id, 0, "WITHDRAW", amount);
         return true;
     } catch (...) { return false; }
 }
@@ -104,6 +106,7 @@ bool BankManager::transfer(int from_id, int to_id, double amount) {
         
         execute_query(sql_tru);
         execute_query(sql_cong);
+        log_transaction(from_id, to_id, "TRANSFER", amount);
         return true;
     } catch (...) {
         return false;
@@ -117,6 +120,7 @@ bool BankManager::request_loan(int account_id, double amount) {
         if (current_balance > 5000000.0) {
             std::string sql = "UPDATE Accounts SET balance = balance + " + std::to_string(amount) + " WHERE id = " + std::to_string(account_id) + ";";
             execute_query(sql);
+            log_transaction(0, account_id, "LOAN", amount);
             return true;
         }
         return false;
