@@ -5,8 +5,11 @@ import pandas as pd
 import math
 import random
 import plotly.express as px
-from saving_ultis import display_savings_plan
+from saving_ultis import secure_hash
 
+hashed_pwd = secure_hash(login_pwd)
+auth_status = bank.authenticate(int(login_id), hashed_pwd)
+bank.create_account(new_name, init_bal, secure_hash(new_pwd))
 st.set_page_config(page_title="VNU Secure Banking", page_icon="🏦", layout="wide")
 if 'logged_in_id' not in st.session_state:
     st.session_state.logged_in_id = None
