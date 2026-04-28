@@ -41,6 +41,7 @@ BankManager::~BankManager() {
 
 int BankManager::create_account(const std::string& name, double initial_balance, const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(db_mutex);
+    std::string hashed_pwd = hash_password(password);
     std::string sql = "INSERT INTO Accounts (name, balance, password) VALUES ('" 
                       + name + "', " + std::to_string(initial_balance) + ", '" + hashed_pwd + "');";
     execute_query(sql);
@@ -71,6 +72,7 @@ int BankManager::authenticate(int account_id, const std::string& password) {
             if (is_locked == 1) {
                 status = -1;
             } else {
+                std::string hashed_input = hash_password(password);
                 if (db_password == hashed_input) {
                     execute_query("UPDATE Accounts SET failed_attempts = 0 WHERE id = " + std::to_string(account_id) + ";");
                     status = 1;
@@ -135,15 +137,15 @@ bool BankManager::withdraw(int account_id, double amount) {
 bool BankManager::transfer(int from_id, int to_id, double amount) {
     std::lock_guard<std::recursive_mutex> lock(db_mutex);
     if (amount <= 0 || from_id == to_id) return false;
-    
+
     try {
         double from_balance = get_balance(from_id);
         get_balance(to_id);
-        
+
         if (from_balance < amount) return false;
         std::string sql_tru = "UPDATE Accounts SET balance = balance - " + std::to_string(amount) + " WHERE id = " + std::to_string(from_id) + ";";
         std::string sql_cong = "UPDATE Accounts SET balance = balance + " + std::to_string(amount) + " WHERE id = " + std::to_string(to_id) + ";";
-        
+
         execute_query(sql_tru);
         execute_query(sql_cong);
         log_transaction(from_id, to_id, "TRANSFER", amount);
@@ -154,7 +156,7 @@ bool BankManager::transfer(int from_id, int to_id, double amount) {
 }
 bool BankManager::request_loan(int account_id, double amount) {
     if (amount <= 0) return false;
-    
+
     try {
         double current_balance = get_balance(account_id);
         if (current_balance > 5000000.0) {
@@ -180,7 +182,7 @@ std::vector<std::vector<std::string>> BankManager::get_history(int account_id) {
     std::string sql = "SELECT type, from_id, to_id, amount, timestamp FROM Transactions "
                       "WHERE from_id = " + std::to_string(account_id) + 
                       " OR to_id = " + std::to_string(account_id) + " ORDER BY timestamp DESC;";
-    
+
     sqlite3_stmt* stmt;
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
         while (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -196,37 +198,57 @@ std::vector<std::vector<std::string>> BankManager::get_history(int account_id) {
     sqlite3_finalize(stmt);
     return history;
 }
+std::string BankManager::hash_password(const std::string& password) {
+    unsigned long hash = 5381;
+    for (char c : password) {
+        hash = ((hash << 5) + hash) + c; 
+    }
+    std::stringstream ss;
+    ss << std::hex << std::setw(8) << std::setfill('0') << hash;
+    return ss.str();
+}
 
+std::vector<int> BankManager::get_optimal_savings_plan(int total_months) {
+    std::vector<std::pair<int, double>> packages = {
+        {1, 0.004},
+        {3, 0.015},
+        {6, 0.035},
+        {12, 0.08}
+    };
 
+    std::vector<double> dp(total_months + 1, 0.0);
+    std::vector<int> trace(total_months + 1, -1);
 
-std::vector<int> BankManager::get_optimal_savings_plan(int target_months) {
-    std::vector<int> terms = {1, 3, 6, 12};
-    std::vector<double> rates = {0.03, 0.04, 0.05, 0.06};
-    std::vector<double> dp(target_months + 1, 0.0);
-    std::vector<int> choice(target_months + 1, 0);
-    for (int i = 1; i <= target_months; ++i) {
-        for (size_t j = 0; j < terms.size(); ++j) {
-            if (i >= terms[j]) {
-                double interest = (rates[j] / 12.0) * terms[j]; 
-                if (dp[i - terms[j]] + interest > dp[i]) {
-                    dp[i] = dp[i - terms[j]] + interest;
-                    choice[i] = terms[j];
+    dp[0] = 1.0;
+    for (int i = 1; i <= total_months; ++i) {
+        for (int j = 0; j < packages.size(); ++j) {
+            int m = packages[j].first;
+            double r = packages[j].second;
+
+            if (i >= m && dp[i - m] > 0) {
+                double new_val = dp[i - m] * (1.0 + r);
+                if (new_val > dp[i]) {
+                    dp[i] = new_val;
+                    trace[i] = j; 
                 }
             }
         }
     }
     std::vector<int> plan;
-    int curr = target_months;
-    while (curr > 0 && choice[curr] > 0) {
-        plan.push_back(choice[curr]);
-        curr -= choice[curr];
+    int curr = total_months;
+    while (curr > 0 && trace[curr] != -1) {
+        int pkg_idx = trace[curr];
+        plan.push_back(packages[pkg_idx].first);
+        curr -= packages[pkg_idx].first;
     }
-    return plan; 
+
+    return plan;
 }
 
 bool BankManager::change_password(int account_id, const std::string& old_password, const std::string& new_password) {
     std::lock_guard<std::recursive_mutex> lock(db_mutex);
-    if (authenticate(account_id, old_password) == 1) {
+    if (authenticate(account_id, old_password) == 1) { // Kiểm tra pass cũ
+        std::string new_hashed = hash_password(new_password);
         execute_query("UPDATE Accounts SET password = '" + new_hashed + "' WHERE id = " + std::to_string(account_id) + ";");
         return true;
     }
