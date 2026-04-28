@@ -143,7 +143,7 @@ else:
         st.subheader("🤖 Cố vấn Gửi tiết kiệm (Dynamic Programming)")
         col_input1, col_input2 = st.columns(2)
         with col_input1:
-        target_months = st.slider("Thời gian bạn muốn gửi (Tháng)", 1, 60, 15)
+            target_months = st.slider("Thời gian bạn muốn gửi (Tháng)", 1, 60, 15)
         with col_input2:
             principal = st.number_input("Số tiền muốn gửi ($)", min_value=100.0, step=100.0, value=1000.0)
 
