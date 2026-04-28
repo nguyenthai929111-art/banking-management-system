@@ -10,6 +10,7 @@ private:
     sqlite3* db;
     void execute_query(const std::string& sql);
     void log_transaction(int from_id, int to_id, const std::string& type, double amount);
+    std::string hash_password(const std::string& password);
 public:
     BankManager();
     ~BankManager();
