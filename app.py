@@ -3,6 +3,7 @@ import bank_core
 import sqlite3
 import pandas as pd
 import math
+import random
 import plotly.express as px
 from saving_ultis import display_savings_plan
 
@@ -24,6 +25,15 @@ def evaluate_fraud_risk(amount, current_balance):
     elif amount >= 5000000 or (current_balance > 0 and (amount / current_balance) > 0.5):
         return "MEDIUM_RISK"
     return "SAFE"
+
+def generate_virtual_card(user_id):
+    random.seed(user_id)
+    card_number = f"{random.randint(10000, 99999)} {random.randint(10000, 99999)}"
+    
+    cvv = random.randint(100, 999)
+    expiry = "12/30"
+    return card_number, cvv, expiry
+    
 @st.cache_resource
 def get_bank_engine():
     return bank_core.BankManager()
@@ -92,8 +102,27 @@ else:
         with col_alert:
             st.metric("Ngưỡng cảnh báo hiện tại", f"${alert_limit:,.2f}")
         st.markdown("---")
-        col_left, col_right = st.columns(2)
 
+        st.markdown("### 💳 Thẻ Giao Dịch Ảo (Virtual Card)")
+        card_num, cvv, exp = generate_virtual_card(my_id)
+        
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
+                    padding: 25px; border-radius: 15px; color: white; width: 350px;
+                    box-shadow: 10px 10px 20px rgba(0,0,0,0.2); margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <p style="font-size: 14px; margin: 0; font-weight: bold;">UET BANKING</p>
+                <p style="font-size: 10px; margin: 0; opacity: 0.8;">VIRTUAL</p>
+            </div>
+            <p style="font-size: 26px; letter-spacing: 4px; font-family: 'Courier New', Courier, monospace; text-align: center; margin: 15px 0;">{card_num}</p>
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <div><p style="font-size: 10px; margin: 0; opacity: 0.7;">EXPIRY</p><p style="margin: 0; font-family: monospace;">{exp}</p></div>
+                <div><p style="font-size: 10px; margin: 0; opacity: 0.7;">CVV</p><p style="margin: 0; font-family: monospace;">***</p></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col_left, col_right = st.columns(2)
         with col_left:
             st.subheader("🔔 Cấu hình Cảnh báo")
             new_threshold = st.number_input("Đặt ngưỡng cảnh báo mới ($)", 
