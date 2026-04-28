@@ -15,5 +15,8 @@ PYBIND11_MODULE(bank_core, m) {
         .def("transfer", &BankManager::transfer)
         .def("request_loan", &BankManager::request_loan)
         .def("get_history", &BankManager::get_history)
-        .def("get_optimal_savings_plan", &BankManager::get_optimal_savings_plan);
+        .def("get_optimal_savings_plan", &BankManager::get_optimal_savings_plan)
+        .def("change_password", &BankManager::change_password)
+        .def("set_alert_threshold", &BankManager::set_alert_threshold)
+        .def("get_alert_threshold", &BankManager::get_alert_threshold);
 }
