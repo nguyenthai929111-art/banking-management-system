@@ -33,7 +33,30 @@ def generate_virtual_card(user_id):
     cvv = random.randint(100, 999)
     expiry = "12/30"
     return card_number, cvv, expiry
-    
+
+def generate_amortization_schedule(principal, annual_rate, months):
+    monthly_rate = annual_rate / 12 / 100
+    if monthly_rate == 0:
+        emi = principal / months
+    else:
+        emi = principal * (monthly_rate * (1 + monthly_rate)**months) / ((1 + monthly_rate)**months - 1)
+
+    schedule = []
+    balance = principal
+    for month in range(1, months + 1):
+        interest = balance * monthly_rate
+        principal_payment = emi - interest
+        balance -= principal_payment
+        if balance < 0: balance = 0
+        schedule.append({
+            "Tháng": month,
+            "Tiền phải trả ($)": emi,
+            "Trả gốc ($)": principal_payment,
+            "Trả lãi ($)": interest,
+            "Dư nợ còn lại ($)": balance
+        })
+    return pd.DataFrame(schedule)
+
 @st.cache_resource
 def get_bank_engine():
     return bank_core.BankManager()
@@ -208,6 +231,13 @@ else:
                     st.success(f"🎉 Hệ thống tự động duyệt! Đã cộng ${loan_amount:,.2f} vào tài khoản.")
                     st.balloons()
                     st.rerun()
+                    st.markdown("---")
+                    st.markdown("### 📅 Giả lập Lịch trả nợ")
+                    loan_term = st.slider("Thời hạn vay (tháng)", 6, 60, 12)
+                    interest_rate = 12.0
+                    st.info(f"Lãi suất áp dụng: **{interest_rate}% / năm** (Dư nợ giảm dần)")
+                    df_schedule = generate_amortization_schedule(loan_amount, interest_rate, loan_term)
+                    st.dataframe(df_schedule.style.format("{:.2f}"), use_container_width=True, hide_index=True)
     with tab_tiet_kiem:
         st.subheader("🤖 Cố vấn Gửi tiết kiệm (AI DP)")
         col_input1, col_input2 = st.columns(2)
