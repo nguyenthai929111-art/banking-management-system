@@ -14,6 +14,5 @@ PYBIND11_MODULE(bank_core, m) {
         .def("withdraw", &BankManager::withdraw)
         .def("transfer", &BankManager::transfer)
         .def("request_loan", &BankManager::request_loan)
-        .def("get_history", &BankManager::get_history)
-        .def("get_optimal_savings_plan", &BankManager::get_optimal_savings_plan);
+        .def("get_history", &BankManager::get_history);
 }
