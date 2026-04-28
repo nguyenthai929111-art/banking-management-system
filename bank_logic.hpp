@@ -22,6 +22,7 @@ public:
     bool transfer(int from_id, int to_id, double amount);
     bool request_loan(int account_id, double amount);
     std::vector<std::vector<std::string>> get_history(int account_id);
+    std::vector<int> get_optimal_savings_plan(int total_months);
 };
 
 #endif
