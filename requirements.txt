@@ -1,4 +1,5 @@
 streamlit
 pybind11
 pandas
+plotly
 .
