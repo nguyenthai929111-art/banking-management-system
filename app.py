@@ -3,6 +3,7 @@ import bank_core
 import sqlite3
 import pandas as pd
 import math
+import plotly.express as px
 
 st.set_page_config(page_title="VNU Secure Banking", page_icon="🏦", layout="wide")
 if 'logged_in_id' not in st.session_state:
@@ -152,6 +153,7 @@ else:
             st.download_button("📥 Tải sao kê (.csv)", data=csv, file_name=f"saoke_{my_id}.csv", mime="text/csv")
     if my_id == 1:
         with tab_admin:
+            #Chức năng can thiệp data_bank
             st.subheader("Bảng điều khiển Server Database")
             st.warning("Khu vực này hiển thị dữ liệu thực tế đang chạy trên Server.")
             try:
@@ -173,7 +175,51 @@ else:
                     )
             except Exception as e:
                 st.error(f"Chưa có dữ liệu hoặc Lỗi kết nối: {e}")
-                
+            #Dashboard phân tích dữ liệu
+            st.title("🛡️ Trung tâm Điều hành Ngân hàng")
+            try:
+                conn = sqlite3.connect('bank_data.db')
+                df = pd.read_sql_query("SELECT id, name, balance FROM Accounts", conn)
+                df_trans = pd.read_sql_query("SELECT * FROM Transactions", conn)
+                conn.close()
+                col_m1, col_m2, col_m3 = st.columns(3)
+                with col_m1:
+                    st.metric("Tổng số khách hàng", len(df))
+                with col_m2:
+                    total_assets = df['balance'].sum()
+                    st.metric("Tổng tài sản hệ thống", f"${total_assets:,.2f}")
+                with col_m3:
+                    avg_bal = df['balance'].mean()
+                    st.metric("Số dư trung bình", f"${avg_bal:,.2f}")
+
+                st.markdown("---")
+                col_chart1, col_chart2 = st.columns(2)
+                with col_chart1:
+                    st.subheader("📊 Phân bổ số dư tài khoản")
+                    fig_hist = px.histogram(df, x="balance", nbins=20, 
+                                            labels={'balance': 'Số dư ($)'},
+                                            color_discrete_sequence=['#636EFA'])
+                    st.plotly_chart(fig_hist, use_container_width=True)
+                with col_chart2:
+                    st.subheader("🍰 Tỷ trọng tài sản cá nhân")
+                    fig_pie = px.pie(df, values='balance', names='name', hole=0.4)
+                    st.plotly_chart(fig_pie, use_container_width=True)
+                st.subheader("📈 Xu hướng dòng tiền (Transactions)")
+                if not df_trans.empty:
+                    df_trans['timestamp'] = pd.to_datetime(df_trans['timestamp'])
+                    daily_trans = df_trans.groupby(df_trans['timestamp'].dt.date)['amount'].sum().reset_index()
+                    fig_line = px.line(daily_trans, x='timestamp', y='amount',
+                                       labels={'timestamp': 'Ngày', 'amount': 'Tổng lượng giao dịch ($)'},
+                                       markers=True)
+                    st.plotly_chart(fig_line, use_container_width=True)
+                else:
+                    st.info("Chưa có dữ liệu giao dịch để phân tích xu hướng.")
+                st.markdown("---")
+                with st.expander("🔍 Xem danh sách tài khoản chi tiết"):
+                    st.dataframe(df, use_container_width=True, hide_index=True)
+            except Exception as e:
+                st.error(f"Lỗi phân tích dữ liệu: {e}")
+            #Ép đổi mật khẩu
             st.markdown("---")
             st.markdown("**3. Quyền năng Admin: Khôi phục Mật khẩu**")
             st.info("Vì lý do bảo mật, Admin không thể xem mật khẩu gốc, nhưng có quyền Đặt lại mật khẩu của bất kỳ ID nào về mặc định là: '123456'")
