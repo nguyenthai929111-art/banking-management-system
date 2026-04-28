@@ -4,6 +4,7 @@ import sqlite3
 import pandas as pd
 import math
 import plotly.express as px
+from savings_utils import display_savings_plan
 
 st.set_page_config(page_title="VNU Secure Banking", page_icon="🏦", layout="wide")
 if 'logged_in_id' not in st.session_state:
@@ -66,12 +67,12 @@ if st.session_state.logged_in_id is None:
 else:
     my_id = st.session_state.logged_in_id
     if my_id == 1:
-        tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_history, tab_admin = st.tabs([
-            "📊 Thông tin", "💸 Giao dịch", "🔄 Chuyển khoản", "🏦 Vay VIP", "🧾 Sao kê", "🛠️ Admin DB"
+        tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_tiet_kiem, tab_history, tab_admin = st.tabs([
+            "📊 Thông tin", "💸 Giao dịch", "🔄 Chuyển khoản", "🏦 Vay VIP", "💡 Tiết kiệm", "🧾 Sao kê", "🛠️ Admin DB"
         ])
     else:
-        tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_history = st.tabs([
-            "📊 Thông tin", "💸 Giao dịch", "🔄 Chuyển khoản", "🏦 Vay VIP", "🧾 Sao kê"
+        tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_tiet_kiem, tab_history = st.tabs([
+            "📊 Thông tin", "💸 Giao dịch", "🔄 Chuyển khoản", "🏦 Vay VIP", "💡 Tiết kiệm", "🧾 Sao kê"
         ])
     
     with tab_info:
@@ -138,6 +139,20 @@ else:
                 if bank.request_loan(my_id, loan_amount):
                     st.success(f"🎉 Hệ thống tự động duyệt! Đã cộng ${loan_amount:,.2f} vào tài khoản.")
                     st.balloons()
+    with tab_tiet_kiem:
+        st.subheader("🤖 Cố vấn Gửi tiết kiệm (AI DP)")
+        col_input1, col_input2 = st.columns(2)
+        with col_input1:
+            target_months = st.slider("Thời gian muốn gửi (Tháng)", 1, 60, 15)
+        with col_input2:
+            principal = st.number_input("Số tiền muốn gửi ($)", min_value=100.0, step=100.0, value=1000.0)
+        if st.button("Tính toán Lộ trình Tối ưu", type="primary"):
+            plan = bank.get_optimal_savings_plan(target_months)
+            if not plan:
+                st.error("Không thể tìm ra kế hoạch phù hợp.")
+            else:
+                st.success("Ting ting! Hệ thống đã tìm ra chiến lược lãi kép tốt nhất!")
+                display_savings_plan(plan, principal)
     with tab_history:
         st.subheader("Lịch sử biến động số dư")
         raw_history = bank.get_history(int(my_id))
