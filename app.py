@@ -231,13 +231,13 @@ else:
                     st.success(f"🎉 Hệ thống tự động duyệt! Đã cộng ${loan_amount:,.2f} vào tài khoản.")
                     st.balloons()
                     st.rerun()
-                    st.markdown("---")
-                    st.markdown("### 📅 Giả lập Lịch trả nợ")
-                    loan_term = st.slider("Thời hạn vay (tháng)", 6, 60, 12)
-                    interest_rate = 12.0
-                    st.info(f"Lãi suất áp dụng: **{interest_rate}% / năm** (Dư nợ giảm dần)")
-                    df_schedule = generate_amortization_schedule(loan_amount, interest_rate, loan_term)
-                    st.dataframe(df_schedule.style.format("{:.2f}"), use_container_width=True, hide_index=True)
+                st.markdown("---")
+                st.markdown("### 📅 Giả lập Lịch trả nợ")
+                loan_term = st.slider("Thời hạn vay (tháng)", 6, 60, 12)
+                interest_rate = 12.0
+                st.info(f"Lãi suất áp dụng: **{interest_rate}% / năm** (Dư nợ giảm dần)")
+                df_schedule = generate_amortization_schedule(loan_amount, interest_rate, loan_term)
+                st.dataframe(df_schedule.style.format("{:.2f}"), use_container_width=True, hide_index=True)
     with tab_tiet_kiem:
         st.subheader("🤖 Cố vấn Gửi tiết kiệm (AI DP)")
         col_input1, col_input2 = st.columns(2)
