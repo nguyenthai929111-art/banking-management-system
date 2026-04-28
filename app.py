@@ -7,9 +7,6 @@ import random
 import plotly.express as px
 from saving_ultis import secure_hash
 
-hashed_pwd = secure_hash(login_pwd)
-auth_status = bank.authenticate(int(login_id), hashed_pwd)
-bank.create_account(new_name, init_bal, secure_hash(new_pwd))
 st.set_page_config(page_title="VNU Secure Banking", page_icon="🏦", layout="wide")
 if 'logged_in_id' not in st.session_state:
     st.session_state.logged_in_id = None
@@ -72,6 +69,7 @@ with st.sidebar:
         login_id = st.number_input("ID Tài khoản", min_value=1, step=1)
         login_pwd = st.text_input("Mật khẩu", type="password")
         if st.button("Đăng nhập", type="primary"):
+            hashed_pwd = secure_hash(login_pwd)
             auth_status = bank.authenticate(int(login_id), login_pwd)
             if auth_status == 1:
                 bank.process_scheduled_transfers()
@@ -100,6 +98,7 @@ if st.session_state.logged_in_id is None:
         
         if st.button("Xác nhận đăng ký", type="primary"):
             if new_name.strip() and new_pwd.strip():
+                hashed_new_pwd = secure_hash(new_pwd)
                 res_id = bank.create_account(new_name, init_bal, new_pwd)
                 st.success(f"Tạo thành công! Mã ID của bạn là **{res_id}**. Hãy dùng ID này để đăng nhập.")
                 st.balloons()
