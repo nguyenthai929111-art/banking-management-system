@@ -1,5 +1,7 @@
 #include "bank_logic.hpp"
 #include <stdexcept>
+#include <iomanip>
+#include <sstream>
 
 void BankManager::execute_query(const std::string& sql) {
     char* errMsg = nullptr;
@@ -158,4 +160,13 @@ std::vector<std::vector<std::string>> BankManager::get_history(int account_id) {
     }
     sqlite3_finalize(stmt);
     return history;
+}
+std::string BankManager::hash_password(const std::string& password) {
+    unsigned long hash = 5381;
+    for (char c : password) {
+        hash = ((hash << 5) + hash) + c; 
+    }
+    std::stringstream ss;
+    ss << std::hex << std::setw(8) << std::setfill('0') << hash;
+    return ss.str();
 }
