@@ -71,6 +71,7 @@ with st.sidebar:
         if st.button("Đăng nhập", type="primary"):
             auth_status = bank.authenticate(int(login_id), login_pwd)
             if auth_status == 1:
+                bank.process_scheduled_transfers()
                 st.session_state.logged_in_id = int(login_id)
                 st.rerun()
             elif auth_status == -1:
@@ -204,11 +205,33 @@ else:
                     st.warning("⚠️ Cảnh báo: Bạn đang chuyển đi một lượng tài sản lớn. Vui lòng kiểm tra kỹ ID người nhận.")
                     if bank.transfer(my_id, target_id, amount_ck):
                         st.success(f"Đã chuyển ${amount_ck:,.2f} đến ID {target_id} thành công.")
+                        import time; time.sleep(1.5); st.rerun()
                 else:
                     if bank.transfer(my_id, target_id, amount_ck):
                         st.success(f"Đã chuyển ${amount_ck:,.2f} đến ID {target_id} an toàn!")
+                        import time; time.sleep(1.5); st.rerun()
                     else:
                         st.error("Thất bại! Sai ID hoặc không đủ số dư.")
+        st.markdown("---") 
+        with st.expander("⏱️ Cài đặt lệnh Chuyển khoản Định kỳ (Hàng tháng)"):
+            st.write("Sử dụng để tự động thanh toán tiền nhà, tiền mạng, nợ định kỳ...")
+            
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                sched_to_id = st.number_input("ID Người nhận (Định kỳ)", min_value=1, step=1, key="sched_to")
+                sched_amount = st.number_input("Số tiền mỗi tháng ($)", min_value=1.0, step=10.0, key="sched_amt")
+            with col_s2:
+                start_date = st.date_input("Ngày thực hiện lần đầu")
+                
+            if st.button("Lưu lệnh định kỳ", type="primary"):
+                if sched_to_id == my_id:
+                    st.error("Không thể tự chuyển tiền cho chính mình!")
+                else:
+                    if bank.add_scheduled_transfer(my_id, int(sched_to_id), sched_amount, str(start_date)):
+                        st.success(f"Đã lưu thành công! Lần tự động trừ tiền đầu tiên sẽ diễn ra vào {start_date}")
+                        st.balloons()
+                    else:
+                        st.error("Lỗi: Không thể lưu lệnh. Vui lòng kiểm tra lại thông tin.")
     with tab_vay:
         st.subheader("Hệ thống Giải ngân Tự động (AI Scoring)")
         current_bal = bank.get_balance(my_id)
