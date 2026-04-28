@@ -223,21 +223,23 @@ else:
         else:
             max_loan = current_bal * 2.0
             st.success(f"Hồ sơ Xuất sắc! Hạn mức vay tín chấp của bạn lên tới: **${max_loan:,.2f}**")
-            
         if max_loan > 0:
             loan_amount = st.number_input("Khoản tiền muốn vay ($)", min_value=1.0, max_value=float(max_loan), step=1000.0, key="loan_amount")
+            st.markdown("---")
+            st.markdown("### 📅 Giả lập Lịch trả nợ")
+            loan_term = st.slider("Thời hạn vay (tháng)", 6, 60, 12)
+            interest_rate = 12.0    
+            st.info(f"Lãi suất áp dụng: **{interest_rate}% / năm** (Dư nợ giảm dần)")
+            df_schedule = generate_amortization_schedule(loan_amount, interest_rate, loan_term)
+            st.dataframe(df_schedule.style.format("{:.2f}"), use_container_width=True, hide_index=True)
+            st.markdown("---")
             if st.button("Gửi yêu cầu giải ngân", type="primary"):
-                if bank.request_loan(my_id, loan_amount):
+                if bank.deposit(my_id, loan_amount): 
                     st.success(f"🎉 Hệ thống tự động duyệt! Đã cộng ${loan_amount:,.2f} vào tài khoản.")
                     st.balloons()
+                    import time
+                    time.sleep(1.5) 
                     st.rerun()
-                st.markdown("---")
-                st.markdown("### 📅 Giả lập Lịch trả nợ")
-                loan_term = st.slider("Thời hạn vay (tháng)", 6, 60, 12)
-                interest_rate = 12.0
-                st.info(f"Lãi suất áp dụng: **{interest_rate}% / năm** (Dư nợ giảm dần)")
-                df_schedule = generate_amortization_schedule(loan_amount, interest_rate, loan_term)
-                st.dataframe(df_schedule.style.format("{:.2f}"), use_container_width=True, hide_index=True)
     with tab_tiet_kiem:
         st.subheader("🤖 Cố vấn Gửi tiết kiệm (AI DP)")
         col_input1, col_input2 = st.columns(2)
