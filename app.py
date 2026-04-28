@@ -31,16 +31,21 @@ def get_bank_engine():
 bank = get_bank_engine()
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/2830/2830284.png", width=100)
-    if st.session_state.logged_in_id is None:
+    if st.session_state.get('logged_in_id') is None:
         st.header("🔑 Đăng nhập")
         login_id = st.number_input("ID Tài khoản", min_value=1, step=1)
         login_pwd = st.text_input("Mật khẩu", type="password")
         if st.button("Đăng nhập", type="primary"):
-            if bank.authenticate(login_id, login_pwd):
-                st.session_state.logged_in_id = login_id
+            auth_status = bank.authenticate(int(login_id), login_pwd)
+            if auth_status == 1:
+                st.session_state.logged_in_id = int(login_id)
                 st.rerun()
+            elif auth_status == -1:
+                st.error("🚨 TÀI KHOẢN BỊ KHÓA do nhập sai quá 5 lần!")
+            elif auth_status == 0:
+                st.error("❌ Sai mật khẩu! (Sai 5 lần sẽ bị khóa thẻ)")
             else:
-                st.error("Sai ID hoặc mật khẩu!")
+                st.error("❓ ID tài khoản không tồn tại.")
     else:
         st.success(f"Đang đăng nhập ID: {st.session_state.logged_in_id}")
         if st.button("Đăng xuất"):
@@ -76,9 +81,43 @@ else:
         ])
     
     with tab_info:
-        st.subheader("Tài khoản của bạn")
-        bal = bank.get_balance(my_id)
-        st.metric("Số dư khả dụng", f"${bal:,.2f}")
+        current_balance = bank.get_balance(my_id)
+        alert_limit = bank.get_alert_threshold(my_id)
+        if current_balance < alert_limit:
+            st.warning(f"⚠️ Cảnh báo: Số dư hiện tại (${current_balance:,.2f}) thấp hơn ngưỡng an toàn của bạn (${alert_limit:,.2f})!")
+        st.title(f"Xin chào, User ID: {my_id}")
+        col_bal, col_alert = st.columns(2)
+        with col_bal:
+            st.metric("Số dư khả dụng", f"${current_balance:,.2f}")
+        with col_alert:
+            st.metric("Ngưỡng cảnh báo hiện tại", f"${alert_limit:,.2f}")
+        st.markdown("---")
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            st.subheader("🔔 Cấu hình Cảnh báo")
+            new_threshold = st.number_input("Đặt ngưỡng cảnh báo mới ($)", 
+                                        min_value=0.0, step=50.0, value=alert_limit)
+            if st.button("Cập nhật ngưỡng"):
+                bank.set_alert_threshold(my_id, new_threshold)
+                st.success("Đã lưu cấu hình mới!")
+                st.rerun()
+        with col_right:
+            st.subheader("🔐 Đổi mật khẩu")
+            with st.form("change_pwd_form"):
+                old_p = st.text_input("Mật khẩu hiện tại", type="password")
+                new_p = st.text_input("Mật khẩu mới", type="password")
+                confirm_p = st.text_input("Xác nhận mật khẩu mới", type="password")
+                if st.form_submit_button("Xác nhận thay đổi"):
+                    if new_p != confirm_p:
+                        st.error("Mật khẩu mới không khớp nhau!")
+                    elif len(new_p) < 4:
+                        st.error("Mật khẩu mới quá ngắn!")
+                    else:
+                        if bank.change_password(my_id, old_p, new_p):
+                            st.success("Mật khẩu đã được thay đổi thành công!")
+                        else:
+                            st.error("Mật khẩu hiện tại không chính xác!")
     with tab_giao_dich:
         st.subheader("Giao dịch Nạp / Rút")
         amount_gd = st.number_input("Nhập số tiền ($)", min_value=1.0, step=50.0, key="gd_amount")
