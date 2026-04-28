@@ -147,7 +147,7 @@ else:
         with col_input2:
             principal = st.number_input("Số tiền muốn gửi ($)", min_value=100.0, step=100.0, value=1000.0)
         if st.button("Tính toán Lộ trình Tối ưu", type="primary"):
-            plan = bank.get_optimal_savings_plan(target_months)
+            plan = bank.get_optimal_savings_plan(int(target_months))
             if not plan:
                 st.error("Không thể tìm ra kế hoạch phù hợp.")
             else:
