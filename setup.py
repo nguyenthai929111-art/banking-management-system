@@ -23,6 +23,6 @@ functions_module = Extension(
 
 setup(
     name='bank_core',
-    version='1.0',
+    version='2.0',
     ext_modules=[functions_module],
 )
