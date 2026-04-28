@@ -21,7 +21,10 @@ BankManager::BankManager() {
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "name TEXT NOT NULL, "
         "balance REAL NOT NULL, "
-        "password TEXT NOT NULL);"; 
+        "password TEXT NOT NULL);"
+        "failed_attempts INTEGER DEFAULT 0, "     
+        "is_locked INTEGER DEFAULT 0, "      
+        "alert_threshold REAL DEFAULT 0.0);";
     execute_query(create_table_sql);
     std::string create_trans_sql = 
         "CREATE TABLE IF NOT EXISTS Transactions ("
@@ -57,21 +60,38 @@ int BankManager::create_account(const std::string& name, double initial_balance,
     return new_id;
 }
 
-bool BankManager::authenticate(int account_id, const std::string& password) {
-    std::string hashed_input = hash_password(password);
-    bool is_valid = false;
-    std::string sql = "SELECT password FROM Accounts WHERE id = " + std::to_string(account_id) + ";";
+int BankManager::authenticate(int account_id, const std::string& password) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
+    std::string sql = "SELECT password, is_locked, failed_attempts FROM Accounts WHERE id = " + std::to_string(account_id) + ";";
     sqlite3_stmt* stmt;
+    int status = -2;
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
             std::string db_password = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
-            if (db_password == hashed_input) {
-                is_valid = true;
+            int is_locked = sqlite3_column_int(stmt, 1);
+            int failed_attempts = sqlite3_column_int(stmt, 2);
+            if (is_locked == 1) {
+                status = -1;
+            } else {
+                std::string hashed_input = hash_password(password);
+                if (db_password == hashed_input) {
+                    execute_query("UPDATE Accounts SET failed_attempts = 0 WHERE id = " + std::to_string(account_id) + ";");
+                    status = 1;
+                } else {
+                    failed_attempts++;
+                    if (failed_attempts >= 5) {
+                        execute_query("UPDATE Accounts SET failed_attempts = " + std::to_string(failed_attempts) + ", is_locked = 1 WHERE id = " + std::to_string(account_id) + ";");
+                        status = -1;
+                    } else {
+                        execute_query("UPDATE Accounts SET failed_attempts = " + std::to_string(failed_attempts) + " WHERE id = " + std::to_string(account_id) + ";");
+                        status = 0;
+                    }
+                }
             }
         }
     }
     sqlite3_finalize(stmt);
-    return is_valid;
+    return status;
 }
 
 double BankManager::get_balance(int account_id) {
@@ -224,4 +244,33 @@ std::vector<int> BankManager::get_optimal_savings_plan(int total_months) {
     }
     
     return plan;
+}
+
+bool BankManager::change_password(int account_id, const std::string& old_password, const std::string& new_password) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
+    if (authenticate(account_id, old_password) == 1) { // Kiểm tra pass cũ
+        std::string new_hashed = hash_password(new_password);
+        execute_query("UPDATE Accounts SET password = '" + new_hashed + "' WHERE id = " + std::to_string(account_id) + ";");
+        return true;
+    }
+    return false;
+}
+
+void BankManager::set_alert_threshold(int account_id, double threshold) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
+    execute_query("UPDATE Accounts SET alert_threshold = " + std::to_string(threshold) + " WHERE id = " + std::to_string(account_id) + ";");
+}
+
+double BankManager::get_alert_threshold(int account_id) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
+    double threshold = 0.0;
+    std::string sql = "SELECT alert_threshold FROM Accounts WHERE id = " + std::to_string(account_id) + ";";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            threshold = sqlite3_column_double(stmt, 0);
+        }
+    }
+    sqlite3_finalize(stmt);
+    return threshold;
 }
