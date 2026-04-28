@@ -21,7 +21,7 @@ BankManager::BankManager() {
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "name TEXT NOT NULL, "
         "balance REAL NOT NULL, "
-        "password TEXT NOT NULL);"
+        "password TEXT NOT NULL),"
         "failed_attempts INTEGER DEFAULT 0, "     
         "is_locked INTEGER DEFAULT 0, "      
         "alert_threshold REAL DEFAULT 0.0);";
