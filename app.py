@@ -5,7 +5,7 @@ import pandas as pd
 import math
 import random
 import plotly.express as px
-from saving_ultis import secure_hash
+from saving_ultis import display_savings_plan
 
 st.set_page_config(page_title="VNU Secure Banking", page_icon="🏦", layout="wide")
 if 'logged_in_id' not in st.session_state:
@@ -26,30 +26,10 @@ def evaluate_fraud_risk(amount, current_balance):
         return "MEDIUM_RISK"
     return "SAFE"
 
-def display_savings_plan(plan, principal):
-    """Hàm hiển thị giao diện lộ trình tiết kiệm AI"""
-    st.write("### 🗺️ Lộ trình Gửi tiết kiệm Tối ưu")
-    total_interest = 0
-    current_principal = principal
-    rates = {1: 0.03, 3: 0.04, 6: 0.05, 12: 0.06} 
-    for i, term in enumerate(plan):
-        rate = rates[term]
-        interest = current_principal * (rate / 12) * term
-        total_interest += interest
-        with st.container():
-            st.markdown(f"""
-            <div style="padding: 15px; border-radius: 10px; background-color: #f0f2f6; margin-bottom: 10px;">
-                <h4 style="margin:0; color:#1e3c72;">Giai đoạn {i+1}: Gửi {term} tháng</h4>
-                <p style="margin:5px 0 0 0;">Lãi suất: {rate*100}%/năm | Sinh lời: <b>+${interest:,.2f}</b></p>
-            </div>
-            """, unsafe_allow_html=True)
-            current_principal += interest
-    st.success(f"💰 Tổng tiền lãi thu được: **${total_interest:,.2f}**")
-    
 def generate_virtual_card(user_id):
     random.seed(user_id)
     card_number = f"{random.randint(10000, 99999)} {random.randint(10000, 99999)}"
-    
+
     cvv = random.randint(100, 999)
     expiry = "12/30"
     return card_number, cvv, expiry
@@ -89,141 +69,13 @@ with st.sidebar:
         login_id = st.number_input("ID Tài khoản", min_value=1, step=1)
         login_pwd = st.text_input("Mật khẩu", type="password")
         if st.button("Đăng nhập", type="primary"):
-            hashed_pwd = secure_hash(login_pwd)
             auth_status = bank.authenticate(int(login_id), login_pwd)
             if auth_status == 1:
                 bank.process_scheduled_transfers()
                 st.session_state.logged_in_id = int(login_id)
                 st.rerun()
             elif auth_status == -1:
-                st.error("🚨 TÀI KHOẢN BỊ KHÓA do nhập sai quá 5 lần!")
-            elif auth_status == 0:
-                st.error("❌ Sai mật khẩu! (Sai 5 lần sẽ bị khóa thẻ)")
-            else:
-                st.error("❓ ID tài khoản không tồn tại.")
-    else:
-        st.success(f"Đang đăng nhập ID: {st.session_state.logged_in_id}")
-        if st.button("Đăng xuất"):
-            st.session_state.logged_in_id = None
-            st.rerun()
-st.title("🏦 Hệ Thống Ngân Hàng VNU")
-
-if st.session_state.logged_in_id is None:
-    st.info("Vui lòng đăng nhập từ thanh bên trái để sử dụng dịch vụ hoặc tạo tài khoản mới bên dưới.")
-    
-    with st.expander("📝 Mở tài khoản mới", expanded=True):
-        new_name = st.text_input("Họ và Tên")
-        new_pwd = st.text_input("Thiết lập mật khẩu", type="password")
-        init_bal = st.number_input("Nạp tiền ban đầu ($)", min_value=0.0, step=100.0)
-        
-        if st.button("Xác nhận đăng ký", type="primary"):
-            if new_name.strip() and new_pwd.strip():
-                hashed_new_pwd = secure_hash(new_pwd)
-                res_id = bank.create_account(new_name, init_bal, new_pwd)
-                st.success(f"Tạo thành công! Mã ID của bạn là **{res_id}**. Hãy dùng ID này để đăng nhập.")
-                st.balloons()
-            else:
-                st.warning("Vui lòng điền đầy đủ Tên và Mật khẩu!")
-
-else:
-    my_id = st.session_state.logged_in_id
-    if my_id == 1:
-        tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_tiet_kiem, tab_history, tab_admin = st.tabs([
-            "📊 Thông tin", "💸 Giao dịch", "🔄 Chuyển khoản", "🏦 Vay VIP", "💡 Tiết kiệm", "🧾 Sao kê", "🛠️ Admin DB"
-        ])
-    else:
-        tab_info, tab_giao_dich, tab_chuyen_khoan, tab_vay, tab_tiet_kiem, tab_history = st.tabs([
-            "📊 Thông tin", "💸 Giao dịch", "🔄 Chuyển khoản", "🏦 Vay VIP", "💡 Tiết kiệm", "🧾 Sao kê"
-        ])
-    
-    with tab_info:
-        current_balance = bank.get_balance(my_id)
-        alert_limit = bank.get_alert_threshold(my_id)
-        if current_balance < alert_limit:
-            st.warning(f"⚠️ Cảnh báo: Số dư hiện tại (${current_balance:,.2f}) thấp hơn ngưỡng an toàn của bạn (${alert_limit:,.2f})!")
-        st.title(f"Xin chào, User ID: {my_id}")
-        col_bal, col_alert = st.columns(2)
-        with col_bal:
-            st.metric("Số dư khả dụng", f"${current_balance:,.2f}")
-        with col_alert:
-            st.metric("Ngưỡng cảnh báo hiện tại", f"${alert_limit:,.2f}")
-        st.markdown("---")
-
-        st.markdown("### 💳 Thẻ Giao Dịch Ảo (Virtual Card)")
-        card_num, cvv, exp = generate_virtual_card(my_id)
-        
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); 
-                    padding: 25px; border-radius: 15px; color: white; width: 350px;
-                    box-shadow: 10px 10px 20px rgba(0,0,0,0.2); margin-bottom: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <p style="font-size: 14px; margin: 0; font-weight: bold;">UET BANKING</p>
-                <p style="font-size: 10px; margin: 0; opacity: 0.8;">VIRTUAL</p>
-            </div>
-            <p style="font-size: 26px; letter-spacing: 4px; font-family: 'Courier New', Courier, monospace; text-align: center; margin: 15px 0;">{card_num}</p>
-            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-                <div><p style="font-size: 10px; margin: 0; opacity: 0.7;">EXPIRY</p><p style="margin: 0; font-family: monospace;">{exp}</p></div>
-                <div><p style="font-size: 10px; margin: 0; opacity: 0.7;">CVV</p><p style="margin: 0; font-family: monospace;">***</p></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col_left, col_right = st.columns(2)
-        with col_left:
-            st.subheader("🔔 Cấu hình Cảnh báo")
-            new_threshold = st.number_input("Đặt ngưỡng cảnh báo mới ($)", 
-                                        min_value=0.0, step=50.0, value=alert_limit)
-            if st.button("Cập nhật ngưỡng"):
-                bank.set_alert_threshold(my_id, new_threshold)
-                st.success("Đã lưu cấu hình mới!")
-                st.rerun()
-        with col_right:
-            st.subheader("🔐 Đổi mật khẩu")
-            with st.form("change_pwd_form"):
-                old_p = st.text_input("Mật khẩu hiện tại", type="password")
-                new_p = st.text_input("Mật khẩu mới", type="password")
-                confirm_p = st.text_input("Xác nhận mật khẩu mới", type="password")
-                if st.form_submit_button("Xác nhận thay đổi"):
-                    if new_p != confirm_p:
-                        st.error("Mật khẩu mới không khớp nhau!")
-                    elif len(new_p) < 4:
-                        st.error("Mật khẩu mới quá ngắn!")
-                    else:
-                        if bank.change_password(my_id, old_p, new_p):
-                            st.success("Mật khẩu đã được thay đổi thành công!")
-                        else:
-                            st.error("Mật khẩu hiện tại không chính xác!")
-    with tab_giao_dich:
-        st.subheader("Giao dịch Nạp / Rút")
-        amount_gd = st.number_input("Nhập số tiền ($)", min_value=1.0, step=50.0, key="gd_amount")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Nạp tiền", use_container_width=True, type="primary"):
-                if bank.deposit(my_id, amount_gd):
-                    st.success(f"Nạp thành công ${amount_gd:,.2f}!")
-                else:
-                    st.error("Giao dịch thất bại.")
-        with col2:
-            if st.button("Rút tiền", use_container_width=True):
-                if bank.withdraw(my_id, amount_gd):
-                    st.success(f"Rút thành công ${amount_gd:,.2f}!")
-                else:
-                    st.error("Thất bại! Không đủ số dư.")
-    with tab_chuyen_khoan:
-        st.subheader("Chuyển tiền & Quét rủi ro")
-        target_id = st.number_input("ID Người nhận", min_value=1, step=1, key="target_id")
-        amount_ck = st.number_input("Số tiền chuyển ($)", min_value=1.0, step=50.0, key="ck_amount")
-        
-        if st.button("Xác nhận chuyển", type="primary"):
-            if target_id == my_id:
-                st.warning("Không thể tự chuyển tiền cho chính mình.")
-            else:
-                current_bal = bank.get_balance(my_id)
-                risk_level = evaluate_fraud_risk(amount_ck, current_bal)
-                if risk_level == "HIGH_RISK":
-                    st.error("🚨 CẢNH BÁO BẢO MẬT: Giao dịch có dấu hiệu bất thường (Số tiền quá lớn hoặc chiếm >80% tài sản). Hệ thống tạm khóa giao dịch này để bảo vệ tài sản của bạn!")
-                elif risk_level == "MEDIUM_RISK":
+@@ -204,169 +205,191 @@
                     st.warning("⚠️ Cảnh báo: Bạn đang chuyển đi một lượng tài sản lớn. Vui lòng kiểm tra kỹ ID người nhận.")
                     if bank.transfer(my_id, target_id, amount_ck):
                         st.success(f"Đã chuyển ${amount_ck:,.2f} đến ID {target_id} thành công.")
@@ -390,7 +242,7 @@ else:
             st.markdown("---")
             st.markdown("**3. Quyền năng Admin: Khôi phục Mật khẩu**")
             st.info("Vì lý do bảo mật, Admin không thể xem mật khẩu gốc, nhưng có quyền Đặt lại mật khẩu của bất kỳ ID nào về mặc định là: '123456'")
-            
+
             reset_id = st.number_input("Nhập ID Khách hàng cần Reset:", min_value=1, step=1)
             if st.button("🔥 Ép Đặt lại Mật khẩu", type="primary"):
                 try:
@@ -402,9 +254,9 @@ else:
                             h = ((h << 5) + h) + ord(char)
                             h = h & 0xFFFFFFFF
                         return f"{h:08x}"
-                    
+
                     default_hashed = python_hash("123456")
-                    
+
                     cursor.execute("UPDATE Accounts SET password = ? WHERE id = ?", (default_hashed, reset_id))
                     if cursor.rowcount > 0:
                         conn.commit()
