@@ -173,3 +173,32 @@ else:
                     )
             except Exception as e:
                 st.error(f"Chưa có dữ liệu hoặc Lỗi kết nối: {e}")
+                
+            st.markdown("---")
+            st.markdown("**3. Quyền năng Admin: Khôi phục Mật khẩu**")
+            st.info("Vì lý do bảo mật, Admin không thể xem mật khẩu gốc, nhưng có quyền Đặt lại mật khẩu của bất kỳ ID nào về mặc định là: '123456'")
+            
+            reset_id = st.number_input("Nhập ID Khách hàng cần Reset:", min_value=1, step=1)
+            if st.button("🔥 Ép Đặt lại Mật khẩu", type="primary"):
+                try:
+                    conn = sqlite3.connect('bank_data.db')
+                    cursor = conn.cursor()
+                    def python_hash(pwd):
+                        h = 5381
+                        for char in pwd:
+                            h = ((h << 5) + h) + ord(char)
+                            h = h & 0xFFFFFFFF
+                        return f"{h:08x}"
+                    
+                    default_hashed = python_hash("123456")
+                    
+                    cursor.execute("UPDATE Accounts SET password = ? WHERE id = ?", (default_hashed, reset_id))
+                    if cursor.rowcount > 0:
+                        conn.commit()
+                        st.success(f"Đã reset thành công! Khách hàng ID {reset_id} giờ có thể đăng nhập bằng pass: 123456")
+                        st.balloons()
+                    else:
+                        st.error("Không tìm thấy ID này trong hệ thống!")
+                    conn.close()
+                except Exception as e:
+                    st.error(f"Lỗi: {e}")
