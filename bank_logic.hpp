@@ -28,6 +28,8 @@ public:
     double get_alert_threshold(int account_id);
     std::vector<std::vector<std::string>> get_history(int account_id);
     std::vector<int> get_optimal_savings_plan(int total_months);
+    bool add_scheduled_transfer(int from_id, int to_id, double amount, const std::string& start_date);
+    void process_scheduled_transfers();
 };
 
 #endif
