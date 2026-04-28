@@ -4,7 +4,7 @@ import sqlite3
 import pandas as pd
 import math
 import plotly.express as px
-from savings_ultis import display_savings_plan
+from saving_ultis import display_savings_plan
 
 st.set_page_config(page_title="VNU Secure Banking", page_icon="🏦", layout="wide")
 if 'logged_in_id' not in st.session_state:
