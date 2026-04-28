@@ -183,3 +183,35 @@ std::string BankManager::hash_password(const std::string& password) {
     ss << std::hex << std::setw(8) << std::setfill('0') << hash;
     return ss.str();
 }
+
+std::vector<int> BankManager::get_optimal_savings_plan(int total_months) {
+    std::vector<std::pair<int, double>> packages = {
+        {1, 0.004},
+        {3, 0.015},
+        {6, 0.035},
+        {12, 0.08} 
+    };
+    std::vector<double> dp(total_months + 1, 0.0);
+    std::vector<int> trace(total_months + 1, -1);
+    dp[0] = 1.0;
+    for (int i = 1; i <= total_months; ++i) {
+        for (int j = 0; j < packages.size(); ++j) {
+            int m = packages[j].first;
+            double r = packages[j].second;
+            if (i >= m && dp[i - m] > 0) {
+                double new_val = dp[i - m] * (1.0 + r);
+                if (new_val > dp[i]) {
+                    dp[i] = new_val;
+                    trace[i] = j;
+                }
+            }
+        }
+    }
+    std::vector<int> plan;
+    int curr = total_months;
+    while (curr > 0 && trace[curr] != -1) {
+        int pkg_idx = trace[curr];
+        plan.push_back(packages[pkg_idx].first);
+        curr -= packages[pkg_idx].first;
+    }
+    return plan;
