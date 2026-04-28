@@ -18,5 +18,7 @@ PYBIND11_MODULE(bank_core, m) {
         .def("get_optimal_savings_plan", &BankManager::get_optimal_savings_plan)
         .def("change_password", &BankManager::change_password)
         .def("set_alert_threshold", &BankManager::set_alert_threshold)
-        .def("get_alert_threshold", &BankManager::get_alert_threshold);
+        .def("get_alert_threshold", &BankManager::get_alert_threshold)
+        .def("add_scheduled_transfer", &BankManager::add_scheduled_transfer)
+        .def("process_scheduled_transfers", &BankManager::process_scheduled_transfers);
 }
