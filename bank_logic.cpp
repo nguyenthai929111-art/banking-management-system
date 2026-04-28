@@ -38,26 +38,39 @@ BankManager::~BankManager() {
 }
 
 int BankManager::create_account(const std::string& name, double initial_balance, const std::string& password) {
-    if (initial_balance < 0) return -1;
+    std::string hashed_pwd = hash_password(password);
     std::string sql = "INSERT INTO Accounts (name, balance, password) VALUES ('" 
-                      + name + "', " + std::to_string(initial_balance) + ", '" + password + "');";
+                      + name + "', " + std::to_string(initial_balance) + ", '" + hashed_pwd + "');";
     execute_query(sql);
-    return sqlite3_last_insert_rowid(db); 
-}
-
-bool BankManager::authenticate(int account_id, const std::string& password) {
-    std::string sql = "SELECT password FROM Accounts WHERE id = " + std::to_string(account_id) + ";";
+    int new_id = 0;
     sqlite3_stmt* stmt;
-    std::string stored_password = "";
-
-    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, "SELECT seq FROM sqlite_sequence WHERE name='Accounts'", -1, &stmt, nullptr) == SQLITE_OK) {
         if (sqlite3_step(stmt) == SQLITE_ROW) {
-            stored_password = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            new_id = sqlite3_column_int(stmt, 0);
         }
     }
     sqlite3_finalize(stmt);
-    
-    return (stored_password == password);
+    if (initial_balance > 0) {
+        log_transaction(0, new_id, "DEPOSIT", initial_balance);
+    }
+    return new_id;
+}
+
+bool BankManager::authenticate(int account_id, const std::string& password) {
+    std::string hashed_input = hash_password(password);
+    bool is_valid = false;
+    std::string sql = "SELECT password FROM Accounts WHERE id = " + std::to_string(account_id) + ";";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        if (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::string db_password = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+            if (db_password == hashed_input) {
+                is_valid = true;
+            }
+        }
+    }
+    sqlite3_finalize(stmt);
+    return is_valid;
 }
 
 double BankManager::get_balance(int account_id) {
