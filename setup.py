@@ -17,7 +17,8 @@ functions_module = Extension(
     include_dirs=[get_pybind_include(), '.'],
     libraries=libs,
     language='c++',
-    extra_compile_args=['-std=c++11']
+    extra_compile_args=['-std=c++11'],
+    extra_link_args=link_args
 )
 
 setup(
