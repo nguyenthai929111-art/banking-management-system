@@ -273,3 +273,33 @@ double BankManager::get_alert_threshold(int account_id) {
     sqlite3_finalize(stmt);
     return threshold;
 }
+
+bool BankManager::add_scheduled_transfer(int from_id, int to_id, double amount, const std::string& start_date) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
+    if (amount <= 0 || from_id == to_id) return false;
+    
+    std::string sql = "INSERT INTO ScheduledTransfers (from_id, to_id, amount, next_run_date) VALUES (" +
+                      std::to_string(from_id) + ", " + std::to_string(to_id) + ", " + 
+                      std::to_string(amount) + ", '" + start_date + "');";
+    execute_query(sql);
+    return true;
+}
+
+void BankManager::process_scheduled_transfers() {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
+    std::string sql = "SELECT id, from_id, to_id, amount FROM ScheduledTransfers WHERE next_run_date <= DATE('now');";
+    sqlite3_stmt* stmt;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+        while (sqlite3_step(stmt) == SQLITE_ROW) {
+            int sched_id = sqlite3_column_int(stmt, 0);
+            int from_id = sqlite3_column_int(stmt, 1);
+            int to_id = sqlite3_column_int(stmt, 2);
+            double amount = sqlite3_column_double(stmt, 3);
+            if (transfer(from_id, to_id, amount)) {
+                std::string update_sql = "UPDATE ScheduledTransfers SET next_run_date = DATE(next_run_date, '+1 month') WHERE id = " + std::to_string(sched_id) + ";";
+                execute_query(update_sql);
+            }
+        }
+    }
+    sqlite3_finalize(stmt);
+}
