@@ -20,3 +20,5 @@ def display_savings_plan(plan, principal):
     profit = current_money - principal
     st.metric("Tổng tiền nhận được dự kiến", f"${current_money:,.2f}", f"+${profit:,.2f} (Lợi nhuận)")
     return current_money
+    git rm --cached tên_file
+
