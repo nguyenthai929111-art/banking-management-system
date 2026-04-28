@@ -199,41 +199,29 @@ std::vector<std::vector<std::string>> BankManager::get_history(int account_id) {
 
 
 
-std::vector<int> BankManager::get_optimal_savings_plan(int total_months) {
-    std::vector<std::pair<int, double>> packages = {
-        {1, 0.004},
-        {3, 0.015},
-        {6, 0.035},
-        {12, 0.08}
-    };
-    
-    std::vector<double> dp(total_months + 1, 0.0);
-    std::vector<int> trace(total_months + 1, -1);
-    
-    dp[0] = 1.0;
-    for (int i = 1; i <= total_months; ++i) {
-        for (int j = 0; j < packages.size(); ++j) {
-            int m = packages[j].first;
-            double r = packages[j].second;
-            
-            if (i >= m && dp[i - m] > 0) {
-                double new_val = dp[i - m] * (1.0 + r);
-                if (new_val > dp[i]) {
-                    dp[i] = new_val;
-                    trace[i] = j; 
+std::vector<int> BankManager::get_optimal_savings_plan(int target_months) {
+    std::vector<int> terms = {1, 3, 6, 12};
+    std::vector<double> rates = {0.03, 0.04, 0.05, 0.06};
+    std::vector<double> dp(target_months + 1, 0.0);
+    std::vector<int> choice(target_months + 1, 0);
+    for (int i = 1; i <= target_months; ++i) {
+        for (size_t j = 0; j < terms.size(); ++j) {
+            if (i >= terms[j]) {
+                double interest = (rates[j] / 12.0) * terms[j]; 
+                if (dp[i - terms[j]] + interest > dp[i]) {
+                    dp[i] = dp[i - terms[j]] + interest;
+                    choice[i] = terms[j];
                 }
             }
         }
     }
     std::vector<int> plan;
-    int curr = total_months;
-    while (curr > 0 && trace[curr] != -1) {
-        int pkg_idx = trace[curr];
-        plan.push_back(packages[pkg_idx].first);
-        curr -= packages[pkg_idx].first;
+    int curr = target_months;
+    while (curr > 0 && choice[curr] > 0) {
+        plan.push_back(choice[curr]);
+        curr -= choice[curr];
     }
-    
-    return plan;
+    return plan; 
 }
 
 bool BankManager::change_password(int account_id, const std::string& old_password, const std::string& new_password) {
