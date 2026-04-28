@@ -38,6 +38,7 @@ BankManager::~BankManager() {
 }
 
 int BankManager::create_account(const std::string& name, double initial_balance, const std::string& password) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
     std::string hashed_pwd = hash_password(password);
     std::string sql = "INSERT INTO Accounts (name, balance, password) VALUES ('" 
                       + name + "', " + std::to_string(initial_balance) + ", '" + hashed_pwd + "');";
@@ -74,6 +75,7 @@ bool BankManager::authenticate(int account_id, const std::string& password) {
 }
 
 double BankManager::get_balance(int account_id) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
     std::string sql = "SELECT balance FROM Accounts WHERE id = " + std::to_string(account_id) + ";";
     sqlite3_stmt* stmt;
     double balance = -1.0;
@@ -90,6 +92,7 @@ double BankManager::get_balance(int account_id) {
 }
 
 bool BankManager::deposit(int account_id, double amount) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
     if (amount <= 0) return false;
     try {
         get_balance(account_id); 
@@ -101,6 +104,7 @@ bool BankManager::deposit(int account_id, double amount) {
 }
 
 bool BankManager::withdraw(int account_id, double amount) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
     if (amount <= 0) return false;
     try {
         double current_balance = get_balance(account_id);
@@ -112,6 +116,7 @@ bool BankManager::withdraw(int account_id, double amount) {
     } catch (...) { return false; }
 }
 bool BankManager::transfer(int from_id, int to_id, double amount) {
+    std::lock_guard<std::recursive_mutex> lock(db_mutex);
     if (amount <= 0 || from_id == to_id) return false;
     
     try {
