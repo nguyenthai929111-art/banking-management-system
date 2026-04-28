@@ -178,6 +178,7 @@ else:
                 if bank.request_loan(my_id, loan_amount):
                     st.success(f"🎉 Hệ thống tự động duyệt! Đã cộng ${loan_amount:,.2f} vào tài khoản.")
                     st.balloons()
+                    st.rerun()
     with tab_tiet_kiem:
         st.subheader("🤖 Cố vấn Gửi tiết kiệm (AI DP)")
         col_input1, col_input2 = st.columns(2)
@@ -194,17 +195,23 @@ else:
                 display_savings_plan(plan, principal)
     with tab_history:
         st.subheader("Lịch sử biến động số dư")
-        raw_history = bank.get_history(int(my_id))
-        
-        if not raw_history:
-            st.info("Bạn chưa thực hiện giao dịch nào.")
+        conn = sqlite3.connect('bank_data.db')
+        df = pd.read_sql_query(f"SELECT * FROM Transactions WHERE from_id={my_id} OR to_id={my_id}", conn)
+        conn.close()
+
+        if not df.empty:
+            df['type_val'] = df.apply(lambda x: x['amount'] if x['to_id'] == my_id else -x['amount'], axis=1)
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            import plotly.express as px
+            fig = px.bar(df, x='timestamp', y='type_val', 
+                         color='type_val', 
+                         title="Biến động số dư theo thời gian",
+                         labels={'type_val': 'Số tiền ($)', 'timestamp': 'Thời gian'},
+                         color_continuous_scale=['red', 'green'])
+            st.plotly_chart(fig, use_container_width=True)
+            st.dataframe(df.sort_values('timestamp', ascending=False), use_container_width=True)
         else:
-            df_history = pd.DataFrame(raw_history, columns=["Loại", "Từ ID", "Đến ID", "Số tiền ($)", "Thời gian"])
-            df_history["Số tiền ($)"] = df_history["Số tiền ($)"].apply(lambda x: f"{float(x):,.2f}")
-            
-            st.dataframe(df_history, use_container_width=True, hide_index=True)
-            csv = df_history.to_csv(index=False).encode('utf-8')
-            st.download_button("📥 Tải sao kê (.csv)", data=csv, file_name=f"saoke_{my_id}.csv", mime="text/csv")
+            st.info("Bạn chưa có giao dịch nào.")
     if my_id == 1:
         with tab_admin:
             #Chức năng can thiệp data_bank
