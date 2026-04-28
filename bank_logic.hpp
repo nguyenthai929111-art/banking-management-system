@@ -4,12 +4,14 @@
 #include <vector>
 #include <string>
 #include "sqlite3.h"
+#include <mutex>
 
 class BankManager {
 private:
     sqlite3* db;
     void execute_query(const std::string& sql);
     void log_transaction(int from_id, int to_id, const std::string& type, double amount);
+    std::recursive_mutex db_mutex;
     std::string hash_password(const std::string& password);
 public:
     BankManager();
