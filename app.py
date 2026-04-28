@@ -26,6 +26,26 @@ def evaluate_fraud_risk(amount, current_balance):
         return "MEDIUM_RISK"
     return "SAFE"
 
+def display_savings_plan(plan, principal):
+    """Hàm hiển thị giao diện lộ trình tiết kiệm AI"""
+    st.write("### 🗺️ Lộ trình Gửi tiết kiệm Tối ưu")
+    total_interest = 0
+    current_principal = principal
+    rates = {1: 0.03, 3: 0.04, 6: 0.05, 12: 0.06} 
+    for i, term in enumerate(plan):
+        rate = rates[term]
+        interest = current_principal * (rate / 12) * term
+        total_interest += interest
+        with st.container():
+            st.markdown(f"""
+            <div style="padding: 15px; border-radius: 10px; background-color: #f0f2f6; margin-bottom: 10px;">
+                <h4 style="margin:0; color:#1e3c72;">Giai đoạn {i+1}: Gửi {term} tháng</h4>
+                <p style="margin:5px 0 0 0;">Lãi suất: {rate*100}%/năm | Sinh lời: <b>+${interest:,.2f}</b></p>
+            </div>
+            """, unsafe_allow_html=True)
+            current_principal += interest
+    st.success(f"💰 Tổng tiền lãi thu được: **${total_interest:,.2f}**")
+    
 def generate_virtual_card(user_id):
     random.seed(user_id)
     card_number = f"{random.randint(10000, 99999)} {random.randint(10000, 99999)}"
