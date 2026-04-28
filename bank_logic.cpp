@@ -41,7 +41,6 @@ BankManager::~BankManager() {
 
 int BankManager::create_account(const std::string& name, double initial_balance, const std::string& password) {
     std::lock_guard<std::recursive_mutex> lock(db_mutex);
-    std::string hashed_pwd = hash_password(password);
     std::string sql = "INSERT INTO Accounts (name, balance, password) VALUES ('" 
                       + name + "', " + std::to_string(initial_balance) + ", '" + hashed_pwd + "');";
     execute_query(sql);
@@ -72,7 +71,6 @@ int BankManager::authenticate(int account_id, const std::string& password) {
             if (is_locked == 1) {
                 status = -1;
             } else {
-                std::string hashed_input = hash_password(password);
                 if (db_password == hashed_input) {
                     execute_query("UPDATE Accounts SET failed_attempts = 0 WHERE id = " + std::to_string(account_id) + ";");
                     status = 1;
@@ -198,15 +196,8 @@ std::vector<std::vector<std::string>> BankManager::get_history(int account_id) {
     sqlite3_finalize(stmt);
     return history;
 }
-std::string BankManager::hash_password(const std::string& password) {
-    unsigned long hash = 5381;
-    for (char c : password) {
-        hash = ((hash << 5) + hash) + c; 
-    }
-    std::stringstream ss;
-    ss << std::hex << std::setw(8) << std::setfill('0') << hash;
-    return ss.str();
-}
+
+
 
 std::vector<int> BankManager::get_optimal_savings_plan(int total_months) {
     std::vector<std::pair<int, double>> packages = {
@@ -247,8 +238,7 @@ std::vector<int> BankManager::get_optimal_savings_plan(int total_months) {
 
 bool BankManager::change_password(int account_id, const std::string& old_password, const std::string& new_password) {
     std::lock_guard<std::recursive_mutex> lock(db_mutex);
-    if (authenticate(account_id, old_password) == 1) { // Kiểm tra pass cũ
-        std::string new_hashed = hash_password(new_password);
+    if (authenticate(account_id, old_password) == 1) {
         execute_query("UPDATE Accounts SET password = '" + new_hashed + "' WHERE id = " + std::to_string(account_id) + ";");
         return true;
     }
