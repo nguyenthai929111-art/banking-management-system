@@ -1,5 +1,11 @@
 import streamlit as st
+import hashlib
 
+SYSTEM_SALT = "VNU_UET_BANKING_SECURE_SALT_2026!@#"
+def secure_hash(password: str) -> str:
+    """Băm mật khẩu bằng SHA-256 kết hợp Salt"""
+    salted_password = password + SYSTEM_SALT
+    return hashlib.sha256(salted_password.encode('utf-8')).hexdigest()
 def display_savings_plan(plan, principal):
     rates = {1: 0.004, 3: 0.015, 6: 0.035, 12: 0.08}
     current_money = principal
