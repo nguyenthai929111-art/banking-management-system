@@ -257,7 +257,7 @@ else:
             st.dataframe(df_schedule.style.format("{:.2f}"), use_container_width=True, hide_index=True)
             st.markdown("---")
             if st.button("Gửi yêu cầu giải ngân", type="primary"):
-                if bank.deposit(my_id, loan_amount): 
+                if bank.request_loan(my_id, loan_amount): 
                     st.success(f"🎉 Hệ thống tự động duyệt! Đã cộng ${loan_amount:,.2f} vào tài khoản.")
                     st.balloons()
                     import time
