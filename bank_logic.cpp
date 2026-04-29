@@ -31,6 +31,7 @@ BankManager::BankManager() {
         "id INTEGER PRIMARY KEY AUTOINCREMENT, "
         "from_id INTEGER, "
         "to_id INTEGER, "
+        "type TEXT, "
         "amount REAL, "
         "next_run_date DATE);";
     execute_query(create_trans_sql);
