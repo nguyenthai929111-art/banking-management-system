@@ -12,6 +12,15 @@ void BankManager::execute_query(const std::string& sql) {
     }
 }
 
+void BankManager::log_transaction(int from_id, int to_id, const std::string& type, double amount) {
+    std::string sql = "INSERT INTO Transactions (from_id, to_id, type, amount) VALUES (" +
+                      std::to_string(from_id) + ", " + 
+                      std::to_string(to_id) + ", '" + 
+                      type + "', " + 
+                      std::to_string(amount) + ");";
+    execute_query(sql);
+}
+
 BankManager::BankManager() {
     if (sqlite3_open("bank_data.db", &db) != SQLITE_OK) {
         throw std::runtime_error("Không thể mở Database!");
